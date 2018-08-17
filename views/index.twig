@@ -1,0 +1,71 @@
+{% extends 'layout.twig' %}
+
+{% block body %}
+	<h1>ComfyBarista! - Type !coffeemenu</h1>
+	<script>
+		var isVoteRunning = false;
+		var client = null;
+		var menu = ["Matcha Latte", "Caramel Machiato", "Cafe Au Lait", "Flat White", "London Fog", "Cappucino", "Mocha"];
+		var baristas = [];
+		var drinks = {};
+
+		$( document ).ready(function() {
+			$("#vote-wrapper").hide();
+
+			for( var i = 0, len = menu.length; i < len; i++ ) {
+				baristas.push( "EchoTheSpaceHippie" );
+			}
+
+			var options = {
+				options: {
+					debug: false
+				},
+				connection: {
+					reconnect: true,
+				},
+				identity: {
+					username: "{{ username }}",
+				    password: "{{ oauth }}"
+				},
+				channels: ["#{{ username }}"]
+			};
+
+			client = new tmi.client(options);
+
+			// Connect the client to the server..
+			client.connect();
+
+			client.on("chat", function (channel, userstate, message, self) {
+				if( message.startsWith( "!menu" )) {
+					client.say( "#{{ username }}", "!drink any of these: " + menu.join( ", " ) );
+				}
+				if( message.startsWith( "!serve " ) || message.startsWith( "!barista " ) || message.startsWith( "!brew " ) ) {
+					var parts = message.split( " " );
+					if( parts.length > 1 ) {
+						var drink = message.replace( parts[ 0 ], "" ).trim();
+						menu.push( drink );
+						baristas.push( userstate[ "display-name" ] );
+						client.say( "#{{ username }}", userstate[ "display-name" ] + " made a " + drink + " and is ready to !drink" );
+					}
+				}
+				if( message.startsWith( "!drink " )) {
+					var parts = message.split( " " );
+					if( parts.length > 1 ) {
+						var drink = message.replace( parts[ 0 ], "" ).trim();
+						for( var i = 0, len = menu.length; i < len; i++ ) {
+							if( menu[ i ].toLowerCase() == drink.toLowerCase() ) {
+								// DRINK!
+								var drinkName = menu[ i ];
+								var baristaName = baristas[ i ];
+								menu.splice(i, 1);
+								baristas.splice(i, 1);
+								client.say( "#{{ username }}", userstate[ "display-name" ] + " grabs and drinks " + baristaName + "'s " + drinkName + "!" );
+							}
+						}
+					}
+				}
+				console.log( userstate["display-name"] + ": " + message );
+			});
+		});
+	</script>
+{% endblock %}
